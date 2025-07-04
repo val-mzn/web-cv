@@ -1,4 +1,4 @@
-import { User, Mail, Phone, MapPin, Linkedin, Github, Send, MessageSquare, Clock, CheckCircle } from "lucide-react";
+import { User, Mail, Phone, MapPin, Linkedin, Github, Send, CheckCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import SectionTitle from "./section-title";

@@ -1,8 +1,23 @@
-import { Code, Star, Zap, Database, Palette, Terminal, Globe, Wrench, Server, Computer, TerminalIcon } from "lucide-react";
+import { Code, Zap, Database, Terminal, Wrench, Server, Computer } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import Section from "./section";
 import SectionTitle from "./section-title";
+
+// Types pour clarifier la structure
+type Skill = {
+  name: string;
+  level: number;
+  icon: string; // Path vers SVG
+};
+
+type SkillCategory = {
+  id: string;
+  name: string;
+  icon: React.ComponentType<any>; // Composant React de lucide-react
+  color: string;
+  skills: Skill[];
+};
 
 // Import des icônes des technologies
 import ReactIcon from "../assets/icons/react/react-original.svg";
@@ -23,11 +38,12 @@ import VSCodeIcon from "../assets/icons/vscode/vscode-original.svg";
 import PostmanIcon from "../assets/icons/postman/postman-original.svg";
 
 import VisualStudioIcon from "../assets/icons/visualstudio/visualstudio-original.svg";
+import SSHIcon from "../assets/icons/ssh/ssh-original.svg";
 
 export default function Skills() {
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
 
-  const skillCategories = [
+  const skillCategories: SkillCategory[] = [
     {
       id: "frontend",
       name: "Frontend",
@@ -95,7 +111,7 @@ export default function Skills() {
       color: "from-pink-500 to-pink-600",
       skills: [
         { name: "Python", level: 90, icon: PythonIcon },
-        { name: "Bash", level: 80, icon: TerminalIcon },
+        { name: "Bash", level: 80, icon: SSHIcon },
       ]
     }
   ];

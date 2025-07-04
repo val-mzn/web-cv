@@ -3,7 +3,6 @@ import {
   Award,
   Calendar,
   MapPin,
-  Star,
   CheckCircle,
   Clock,
 } from "lucide-react";
