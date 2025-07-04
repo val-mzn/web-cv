@@ -1,0 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Source Sans Pro:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+/* Configuration des fonts avec Tailwind CSS v4 */
+@layer base {
+  :root {
+    --font-sans: 'Source Sans Pro', system-ui, -apple-system, sans-serif;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+  }
+}
