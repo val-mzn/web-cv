@@ -1,9 +1,11 @@
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
+import { X, Menu } from "lucide-react";
 
 export default function Navbar() {
   const [isVisible, setIsVisible] = useState(false);
   const [activeSection, setActiveSection] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationItems = [
     { id: "about", label: "À propos" },
@@ -36,6 +38,18 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Fermer le menu mobile lors du redimensionnement
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -44,6 +58,12 @@ export default function Navbar() {
         block: "start"
       });
     }
+    // Fermer le menu mobile après la navigation
+    setIsMobileMenuOpen(false);
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
@@ -57,21 +77,21 @@ export default function Navbar() {
         duration: 0.3, 
         ease: "easeInOut" 
       }}
-      className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r bg-slate-900/50  backdrop-blur-sm border-b border-white/10"
+      className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r bg-slate-900/50 backdrop-blur-sm border-b border-white/10"
     >
-      <div className="max-w-6xl mx-auto px-6 py-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo/Nom */}
           <a className="flex items-center gap-3" href="#header">
-            <span className="w-10 h-10 bg-gradient-to-r from-cyan-600 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold">
+            <span className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-cyan-600 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-base">
               VM
             </span>
-            <span className="text-white font-semibold text-lg">
+            <span className="text-white font-semibold text-base sm:text-lg">
               Valentino Manzon
             </span>
           </a>
 
-          {/* Navigation */}
+          {/* Navigation Desktop */}
           <div className="hidden md:flex items-center gap-6">
             {navigationItems.map((item) => (
               <button
@@ -96,16 +116,54 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Menu mobile (hamburger) */}
+          {/* Bouton menu mobile */}
           <div className="md:hidden">
-            <button className="text-white p-2 hover:bg-white/10 rounded-lg transition-colors duration-300">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+            <button 
+              onClick={toggleMobileMenu}
+              className="text-white p-2 hover:bg-white/10 rounded-lg transition-colors duration-300"
+              aria-label="Menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Menu mobile */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="md:hidden bg-slate-900/95 backdrop-blur-sm border-t border-white/10"
+          >
+            <div className="px-4 py-4 space-y-2">
+              {navigationItems.map((item, index) => (
+                <motion.button
+                  key={item.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => scrollToSection(item.id)}
+                  className={`w-full text-left px-4 py-3 text-base font-medium transition-all duration-300 rounded-lg hover:bg-white/10 ${
+                    activeSection === item.id
+                      ? "text-cyan-400 bg-white/10"
+                      : "text-gray-300 hover:text-white"
+                  }`}
+                >
+                  {item.label}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 } 

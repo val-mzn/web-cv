@@ -143,41 +143,43 @@ export default function Header() {
         <img
           src="/images/profile.png"
           alt="Valentino Manzon"
-          className="w-40 h-40 rounded-full ring-4 ring-white"
+          className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full ring-4 ring-white"
         />
-        <h1 className="text-6xl font-bold text-white leading-tight">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight text-center">
           Valentino Manzon
         </h1>
-        <h2 className="text-4xl mt-4 text-center">
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-4xl mt-4 text-center">
           <span className="text-white mr-2">Développeur Fullstack</span>
           <span className="text-cyan-200 mr-2 font-bold">React</span>
           <span className="text-white mr-2">et</span>
           <span className="text-cyan-200 font-bold">.NET</span>
         </h2>
 
-        <div className="flex flex-col gap-4 justify-center items-center mt-12">
-          <div className="flex gap-4">
+        <div className="flex flex-col gap-6 justify-center items-center mt-8 sm:mt-12 w-full max-w-4xl">
+          {/* Informations de contact - responsive grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 w-full">
             {socials.map((social, index) => (
               <div
                 key={index}
-                className="rounded-xl bg-white/20 shadow-lg ring-1 ring-black/5 p-4 flex items-center justify-center gap-2 text-white hover:scale-105 transition-all duration-300 cursor-pointer border border-white/20"
+                className="rounded-xl bg-white/20 shadow-lg ring-1 ring-black/5 p-3 sm:p-4 flex items-center justify-center gap-2 text-white hover:scale-105 transition-all duration-300 cursor-pointer border border-white/20"
                 onClick={() => window.open(social.link)}
               >
-                <social.icon className={`w-5 h-5 ${social.color}`} />
-                <span>{social.text}</span>
+                <social.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${social.color} flex-shrink-0`} />
+                <span className="text-sm sm:text-base truncate">{social.text}</span>
               </div>
             ))}
           </div>
 
-          <div className="flex gap-4">
+          {/* Liens - responsive layout */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
             {links.map((link, index) => (
               <div
                 key={index}
-                className={`rounded-xl bg-white/20 shadow-lg ring-1 ring-black/5 p-4 flex items-center justify-center gap-2 text-white hover:scale-105 transition-all duration-300 cursor-pointer border border-white/20 ${link.className}`}
+                className={`rounded-xl bg-white/20 shadow-lg ring-1 ring-black/5 p-3 sm:p-4 flex items-center justify-center gap-2 text-white hover:scale-105 transition-all duration-300 cursor-pointer border border-white/20 ${link.className}`}
                 onClick={() => window.open(link.link)}
               >
-                <link.icon className={`w-5 h-5 ${link.color}`} />
-                <span>{link.text}</span>
+                <link.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${link.color} flex-shrink-0`} />
+                <span className="text-sm sm:text-base whitespace-nowrap">{link.text}</span>
               </div>
             ))}
           </div>
@@ -190,7 +192,7 @@ export default function Header() {
         animate={{ opacity: scrollY > 100 ? 0 : 1 }}
         transition={{ duration: 0.5, ease: "easeInOut" }}
       >
-        <ArrowDown className="w-10 h-10 text-white animate-bounce" />
+        <ArrowDown className="w-8 h-8 sm:w-10 sm:h-10 text-white animate-bounce" />
       </motion.div>
     </div>
   );
