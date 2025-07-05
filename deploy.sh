@@ -67,14 +67,29 @@ mkdir -p letsencrypt
 chmod 600 letsencrypt
 
 # Login to GitHub Container Registry if credentials are provided
-if [[ -n "$GITHUB_TOKEN" ]]; then
+if [[ -n "$GITHUB_TOKEN" && -n "$GITHUB_USERNAME" ]]; then
     print_status "Logging into GitHub Container Registry..."
     echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
+    if [[ $? -ne 0 ]]; then
+        print_error "Failed to login to GitHub Container Registry"
+        exit 1
+    fi
+elif [[ -n "$GITHUB_TOKEN" ]]; then
+    print_status "Logging into GitHub Container Registry with GitHub Actions token..."
+    echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_REPOSITORY_OWNER" --password-stdin
+    if [[ $? -ne 0 ]]; then
+        print_error "Failed to login to GitHub Container Registry"
+        exit 1
+    fi
 fi
 
 # Pull latest images
 print_status "Pulling latest Docker images..."
 docker-compose pull
+if [[ $? -ne 0 ]]; then
+    print_error "Failed to pull Docker images"
+    exit 1
+fi
 
 # Stop existing containers
 print_status "Stopping existing containers..."

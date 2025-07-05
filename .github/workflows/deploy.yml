@@ -76,7 +76,26 @@ jobs:
           port: ${{ secrets.OVH_PORT }}
           script: |
             cd ~/web-cv
+            
+            # Créer le fichier .env avec les variables nécessaires
+            cat > .env << EOF
+            GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+            GITHUB_USERNAME=${{ github.repository_owner }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            DOMAIN=${{ secrets.DOMAIN }}
+            ACME_EMAIL=${{ secrets.ACME_EMAIL }}
+            TRAEFIK_AUTH=${{ secrets.TRAEFIK_AUTH }}
+            NODE_ENV=production
+            EOF
+            
+            # Authentification Docker avec GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+            
+            # Déploiement
             docker-compose pull
             docker-compose down
             docker-compose up -d
-            docker system prune -f 
+            docker system prune -f
+            
+            # Nettoyage des credentials
+            docker logout ghcr.io
