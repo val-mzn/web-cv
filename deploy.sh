@@ -70,6 +70,13 @@ load_env() {
     source .env
     set +a
     
+    # Exporter explicitement les variables critiques
+    export GITHUB_REPOSITORY_OWNER
+    export GITHUB_TOKEN
+    export DOMAIN
+    export ACME_EMAIL
+    export TRAEFIK_AUTH
+    
     # Vérifier les variables critiques
     if [ -z "${GITHUB_REPOSITORY_OWNER:-}" ]; then
         error "GITHUB_REPOSITORY_OWNER n'est pas définie"
