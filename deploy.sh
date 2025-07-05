@@ -95,6 +95,9 @@ load_env() {
 
 # Authentification Docker
 docker_login() {
+    log "Configuration du contexte Docker par défaut..."
+    docker context use default
+    
     log "Authentification Docker avec GitHub Container Registry..."
     
     if echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_REPOSITORY_OWNER}" --password-stdin; then
