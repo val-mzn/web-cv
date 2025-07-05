@@ -1,133 +1,201 @@
 #!/bin/bash
 
-# Configuration
-PROJECT_NAME="web-cv"
-COMPOSE_FILE="docker-compose.yml"
-ENV_FILE=".env"
+# Script de déploiement robuste pour web-cv
+# Autor: val-mzn
+# Version: 2.0
 
-# Colors for output
+set -euo pipefail  # Arrêt en cas d'erreur
+
+# Couleurs pour les logs
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Function to print colored output
-print_status() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+# Fonction de logging
+log() {
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+error() {
+    echo -e "${RED}[ERROR] $1${NC}" >&2
 }
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+success() {
+    echo -e "${GREEN}[SUCCESS] $1${NC}"
 }
 
-# Check if running as root
-if [[ $EUID -eq 0 ]]; then
-   print_error "This script should not be run as root"
-   exit 1
-fi
+warning() {
+    echo -e "${YELLOW}[WARNING] $1${NC}"
+}
 
-# Check if docker and docker-compose are installed
-if ! command -v docker &> /dev/null; then
-    print_error "Docker is not installed"
-    exit 1
-fi
-
-if ! command -v docker-compose &> /dev/null; then
-    print_error "Docker Compose is not installed"
-    exit 1
-fi
-
-# Check if .env file exists
-if [[ ! -f "$ENV_FILE" ]]; then
-    print_error ".env file not found"
-    print_warning "Please create a .env file with the required variables"
-    exit 1
-fi
-
-# Load environment variables
-source "$ENV_FILE"
-
-# Validate required environment variables
-required_vars=("GITHUB_REPOSITORY_OWNER" "DOMAIN" "ACME_EMAIL")
-for var in "${required_vars[@]}"; do
-    if [[ -z "${!var}" ]]; then
-        print_error "Environment variable $var is not set"
+# Vérifications préalables
+check_prerequisites() {
+    log "Vérification des prérequis..."
+    
+    # Vérifier que Docker est installé
+    if ! command -v docker &> /dev/null; then
+        error "Docker n'est pas installé"
         exit 1
     fi
-done
-
-print_status "Starting deployment of $PROJECT_NAME..."
-
-# Create necessary directories
-mkdir -p letsencrypt
-chmod 600 letsencrypt
-
-# Login to GitHub Container Registry if credentials are provided
-if [[ -n "$GITHUB_TOKEN" && -n "$GITHUB_USERNAME" ]]; then
-    print_status "Logging into GitHub Container Registry..."
-    echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
-    if [[ $? -ne 0 ]]; then
-        print_error "Failed to login to GitHub Container Registry"
+    
+    # Vérifier que Docker Compose est installé
+    if ! command -v docker-compose &> /dev/null; then
+        error "Docker Compose n'est pas installé"
         exit 1
     fi
-elif [[ -n "$GITHUB_TOKEN" ]]; then
-    print_status "Logging into GitHub Container Registry with GitHub Actions token..."
-    echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_REPOSITORY_OWNER" --password-stdin
-    if [[ $? -ne 0 ]]; then
-        print_error "Failed to login to GitHub Container Registry"
+    
+    # Vérifier que le fichier .env existe
+    if [ ! -f .env ]; then
+        error "Le fichier .env n'existe pas"
         exit 1
     fi
-fi
+    
+    # Vérifier que docker-compose.yml existe
+    if [ ! -f docker-compose.yml ]; then
+        error "Le fichier docker-compose.yml n'existe pas"
+        exit 1
+    fi
+    
+    success "Tous les prérequis sont présents"
+}
 
-# Pull latest images
-print_status "Pulling latest Docker images..."
-docker-compose pull
-if [[ $? -ne 0 ]]; then
-    print_error "Failed to pull Docker images"
-    exit 1
-fi
+# Charger les variables d'environnement
+load_env() {
+    log "Chargement des variables d'environnement..."
+    
+    # Charger le fichier .env
+    set -a
+    source .env
+    set +a
+    
+    # Vérifier les variables critiques
+    if [ -z "${GITHUB_REPOSITORY_OWNER:-}" ]; then
+        error "GITHUB_REPOSITORY_OWNER n'est pas définie"
+        exit 1
+    fi
+    
+    if [ -z "${GITHUB_TOKEN:-}" ]; then
+        error "GITHUB_TOKEN n'est pas définie"
+        exit 1
+    fi
+    
+    success "Variables d'environnement chargées"
+    log "Repository owner: ${GITHUB_REPOSITORY_OWNER}"
+    log "Image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/web-cv:latest"
+}
 
-# Stop existing containers
-print_status "Stopping existing containers..."
-docker-compose down
+# Authentification Docker
+docker_login() {
+    log "Authentification Docker avec GitHub Container Registry..."
+    
+    if echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_REPOSITORY_OWNER}" --password-stdin; then
+        success "Authentification Docker réussie"
+    else
+        error "Échec de l'authentification Docker"
+        exit 1
+    fi
+}
 
-# Remove orphaned containers
-print_status "Removing orphaned containers..."
-docker-compose down --remove-orphans
+# Vérifier l'accès à l'image
+check_image_access() {
+    log "Vérification de l'accès à l'image..."
+    
+    IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY_OWNER}/web-cv:latest"
+    
+    if docker pull "${IMAGE_NAME}" --quiet; then
+        success "Image accessible et téléchargée avec succès"
+    else
+        error "Impossible d'accéder à l'image ${IMAGE_NAME}"
+        error "Vérifiez que l'image existe et que vous avez les permissions nécessaires"
+        exit 1
+    fi
+}
 
-# Start new containers
-print_status "Starting new containers..."
-docker-compose up -d
+# Déploiement
+deploy() {
+    log "Démarrage du déploiement..."
+    
+    # Arrêter les services existants
+    log "Arrêt des services existants..."
+    docker-compose down --remove-orphans || true
+    
+    # Télécharger les images
+    log "Téléchargement des images..."
+    docker-compose pull
+    
+    # Démarrer les services
+    log "Démarrage des services..."
+    docker-compose up -d
+    
+    # Attendre que les services soient prêts
+    log "Attente du démarrage des services..."
+    sleep 30
+    
+    # Vérifier l'état des services
+    check_services
+}
 
-# Wait for services to be ready
-print_status "Waiting for services to be ready..."
-sleep 30
+# Vérifier l'état des services
+check_services() {
+    log "Vérification de l'état des services..."
+    
+    # Vérifier que tous les conteneurs sont en cours d'exécution
+    if docker-compose ps | grep -q "Up"; then
+        success "Services démarrés avec succès"
+    else
+        error "Certains services ne sont pas démarrés"
+        docker-compose logs
+        exit 1
+    fi
+    
+    # Test de santé de l'application
+    log "Test de santé de l'application..."
+    for i in {1..30}; do
+        if docker-compose exec -T web-cv curl -f http://localhost:8080/health &> /dev/null; then
+            success "Application en bonne santé"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            error "L'application ne répond pas après 30 tentatives"
+            docker-compose logs web-cv
+            exit 1
+        fi
+        sleep 10
+    done
+}
 
-# Check if services are running
-if docker-compose ps | grep -q "Up"; then
-    print_status "Services are running successfully"
-else
-    print_error "Some services failed to start"
-    docker-compose logs
-    exit 1
-fi
+# Nettoyage
+cleanup() {
+    log "Nettoyage des ressources inutilisées..."
+    
+    # Nettoyage des images et volumes non utilisés
+    docker system prune -f --volumes
+    
+    # Déconnexion de Docker Registry
+    docker logout ghcr.io
+    
+    success "Nettoyage terminé"
+}
 
-# Clean up old images
-print_status "Cleaning up old Docker images..."
-docker system prune -f --volumes
+# Fonction principale
+main() {
+    log "=== Démarrage du déploiement web-cv ==="
+    
+    check_prerequisites
+    load_env
+    docker_login
+    check_image_access
+    deploy
+    cleanup
+    
+    success "=== Déploiement terminé avec succès ==="
+    log "Application accessible sur: https://${DOMAIN:-localhost}"
+}
 
-# Show running containers
-print_status "Currently running containers:"
-docker-compose ps
+# Gestion des erreurs
+trap 'error "Une erreur est survenue. Consultez les logs ci-dessus."' ERR
 
-# Show logs
-print_status "Recent logs:"
-docker-compose logs --tail=50
-
-print_status "Deployment completed successfully!"
-print_status "Your application should be available at: https://$DOMAIN"
-print_status "Traefik dashboard available at: https://traefik.$DOMAIN" 
+# Exécution
+main "$@" 

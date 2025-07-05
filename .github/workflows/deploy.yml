@@ -89,11 +89,16 @@ jobs:
             NODE_ENV=production
             EOF
             
+            # Charger les variables d'environnement
+            export $(cat .env | xargs)
+            
             # Authentification Docker avec GitHub Container Registry
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
             
+            # Vérifier l'image avant le pull
+            echo "Tentative de pull de l'image: ghcr.io/${{ github.repository_owner }}/web-cv:latest"
+            
             # Déploiement
-            export $(cat .env | xargs)
             docker-compose pull
             docker-compose down
             docker-compose up -d
