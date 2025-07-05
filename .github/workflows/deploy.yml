@@ -81,6 +81,7 @@ jobs:
             cat > .env << EOF
             GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
             GITHUB_USERNAME=${{ github.repository_owner }}
+            DOCKER_USERNAME=${{ github.repository_owner }}
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             DOMAIN=${{ secrets.DOMAIN }}
             ACME_EMAIL=${{ secrets.ACME_EMAIL }}
