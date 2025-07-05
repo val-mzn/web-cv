@@ -53,8 +53,8 @@ pids/
 # Coverage directory used by tools like istanbul
 coverage/
 
-# Dependencies lock files (we copy package*.json separately)
-package-lock.json
+# Dependencies lock files (keep package-lock.json for npm ci)
+# package-lock.json is needed for npm ci
 yarn.lock
 
 # Temporary folders
