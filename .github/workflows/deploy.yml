@@ -84,6 +84,9 @@ jobs:
           script: |
             cd ~/web-cv
             
+            # Mettre à jour le repository
+            git pull origin main
+            
             # Créer le fichier .env avec les variables nécessaires
             cat > .env << EOF
             GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
@@ -100,6 +103,21 @@ jobs:
             set -a
             source .env
             set +a
+            
+            # Exporter explicitement les variables critiques
+            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
+            export GITHUB_USERNAME="${{ github.repository_owner }}"
+            export DOCKER_USERNAME="${{ github.repository_owner }}"
+            export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            export DOMAIN="${{ secrets.DOMAIN }}"
+            export ACME_EMAIL="${{ secrets.ACME_EMAIL }}"
+            export TRAEFIK_AUTH="${{ secrets.TRAEFIK_AUTH }}"
+            export NODE_ENV=production
+            
+            # Vérifier les variables d'environnement
+            echo "Variables d'environnement:"
+            echo "GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY_OWNER}"
+            echo "DOMAIN=${DOMAIN}"
             
             # Configurer le contexte Docker par défaut
             docker context use default
@@ -138,9 +156,18 @@ jobs:
                 fi
             done
             
+            # Vérifier le contenu du fichier docker-compose.yml
+            echo "Contenu du fichier docker-compose.yml (lignes image):"
+            grep -n "image:" docker-compose.yml || echo "Aucune ligne image trouvée"
+            
             # Vérifier la configuration docker-compose
-            echo "Configuration docker-compose:"
+            echo "Configuration docker-compose avec substitution:"
             docker-compose config | grep -A 1 "image:"
+            
+            # Vérifier la substitution des variables
+            echo "Test de substitution manuelle:"
+            echo "Variable GITHUB_REPOSITORY_OWNER: ${GITHUB_REPOSITORY_OWNER}"
+            echo "Image attendue: ghcr.io/${GITHUB_REPOSITORY_OWNER}/web-cv:latest"
             
             # Déploiement
             docker-compose pull
