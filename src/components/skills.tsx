@@ -14,7 +14,7 @@ type Skill = {
 type SkillCategory = {
   id: string;
   name: string;
-  icon: React.ComponentType<any>; // Composant React de lucide-react
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; // Composant React de lucide-react
   color: string;
   skills: Skill[];
 };
