@@ -36,43 +36,27 @@ LABEL maintainer="your-email@example.com"
 LABEL version="1.0"
 LABEL description="Web CV application with nginx"
 
-# Create script to initialize permissions
+# Create script to initialize nginx directories dans les tmpfs
 RUN cat > /docker-entrypoint.sh << 'EOF'
 #!/bin/sh
 set -e
 
-# Create nginx directories with proper permissions
+# Create nginx cache directories (only in tmpfs mounted directories)
 mkdir -p /var/cache/nginx/client_temp \
          /var/cache/nginx/proxy_temp \
          /var/cache/nginx/fastcgi_temp \
          /var/cache/nginx/uwsgi_temp \
-         /var/cache/nginx/scgi_temp \
-         /var/run \
-         /var/log/nginx
-
-# Set proper ownership
-chown -R nginx:nginx /var/cache/nginx \
-                     /var/run \
-                     /var/log/nginx \
-                     /usr/share/nginx/html
+         /var/cache/nginx/scgi_temp
 
 # Create nginx.pid file
 touch /var/run/nginx.pid
-chown nginx:nginx /var/run/nginx.pid
 
-# If running as root, exec as nginx user
-if [ "$(id -u)" = "0" ]; then
-    exec su-exec nginx "$@"
-else
-    exec "$@"
-fi
+# Execute the command
+exec "$@"
 EOF
 
 # Make the script executable
 RUN chmod +x /docker-entrypoint.sh
-
-# Install su-exec for user switching
-RUN apk add --no-cache su-exec
 
 # Expose port
 EXPOSE 8080
@@ -84,5 +68,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use the entrypoint script
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
-# Start nginx
+# Start nginx as root
 CMD ["nginx", "-g", "daemon off;"] 
