@@ -5,8 +5,16 @@ Ce guide explique comment configurer et déployer automatiquement votre applicat
 ## 🏗️ Architecture
 
 ```
-GitHub → GitHub Actions → Docker Hub → Serveur OVH → Traefik → nginx → Application React
+GitHub → GitHub Actions → GitHub Container Registry → Serveur OVH → Traefik → nginx → Application React
 ```
+
+### Avantages de GitHub Container Registry (ghcr.io)
+
+- **Gratuit** pour les repositories publics et privés
+- **Authentification intégrée** avec GitHub Actions (pas besoin de secrets supplémentaires)
+- **Images privées** par défaut avec contrôle d'accès granulaire
+- **Sécurité renforcée** avec les Personal Access Tokens
+- **Intégration native** avec l'écosystème GitHub
 
 ## 📋 Prérequis
 
@@ -20,8 +28,9 @@ GitHub → GitHub Actions → Docker Hub → Serveur OVH → Traefik → nginx �
 - Repository avec les sources
 - Secrets configurés pour la CI/CD
 
-### Sur Docker Hub
-- Compte Docker Hub pour stocker les images
+### Sur GitHub
+- Repository avec les sources
+- GitHub Container Registry activé (automatique)
 
 ## 🚀 Configuration Initiale
 
@@ -60,8 +69,8 @@ nano .env
 Remplissez avec vos vraies valeurs :
 
 ```bash
-# Docker Configuration
-DOCKER_USERNAME=votre_nom_utilisateur_docker
+# GitHub Configuration
+GITHUB_REPOSITORY_OWNER=votre_nom_utilisateur_github
 
 # Domain Configuration
 DOMAIN=votre-domaine.com
@@ -91,13 +100,13 @@ echo $(htpasswd -nb admin votre_mot_de_passe) | sed -e s/\\$/\\$\\$/g
 Dans votre repository GitHub, allez dans `Settings → Secrets and variables → Actions` et ajoutez :
 
 ```
-DOCKER_USERNAME=votre_nom_utilisateur_docker
-DOCKER_PASSWORD=votre_mot_de_passe_docker
 OVH_HOST=ip-de-votre-serveur
 OVH_USERNAME=votre-nom-utilisateur
 OVH_SSH_KEY=votre-cle-ssh-privee
 OVH_PORT=22
 ```
+
+**Note** : `GITHUB_TOKEN` est automatiquement disponible dans GitHub Actions pour l'authentification avec GitHub Container Registry.
 
 ### 5. Configuration de la clé SSH
 
@@ -112,13 +121,22 @@ ssh-copy-id -i ~/.ssh/id_rsa.pub utilisateur@ip-serveur
 cat ~/.ssh/id_rsa
 ```
 
+### 6. Configuration GitHub Container Registry
+
+GitHub Container Registry est automatiquement configuré, mais vous devez vous assurer que :
+
+1. **Permissions du workflow** : Dans `Settings → Actions → General → Workflow permissions`, sélectionnez "Read and write permissions"
+2. **Visibilité des packages** : Les images sont privées par défaut. Pour les rendre publiques, allez dans `Packages → web-cv → Package settings`
+3. **Accès depuis le serveur** : Pour les images privées, créez un Personal Access Token avec les permissions `read:packages`
+
 ## 🔧 Utilisation
 
 ### Déploiement Automatique
 
 1. **Push sur la branche main** : Le déploiement se déclenche automatiquement
-2. **GitHub Actions** : Build et push de l'image Docker
-3. **Déploiement** : Mise à jour automatique sur le serveur OVH
+2. **GitHub Actions** : Build et push de l'image Docker vers GitHub Container Registry
+3. **Déploiement** : Téléchargement automatique de la nouvelle image sur le serveur OVH
+4. **Mise à jour** : Redémarrage des conteneurs avec la nouvelle version
 
 ### Déploiement Manuel
 
@@ -148,6 +166,7 @@ docker-compose exec web-cv curl -f http://localhost:8080/health
 
 - **Application** : https://votre-domaine.com
 - **Traefik Dashboard** : https://traefik.votre-domaine.com
+- **GitHub Container Registry** : https://github.com/votre-username/web-cv/pkgs/container/web-cv
 - **Logs nginx** : `docker-compose logs nginx`
 
 ## 🔒 Sécurité
