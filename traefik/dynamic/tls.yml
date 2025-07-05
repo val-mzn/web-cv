@@ -1,0 +1,35 @@
+tls:
+  options:
+    default:
+      minVersion: "VersionTLS12"
+      maxVersion: "VersionTLS13"
+      cipherSuites:
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+      curvePreferences:
+        - "CurveP521"
+        - "CurveP384"
+      sniStrict: true
+    
+    # Configuration pour les certificats auto-signés en développement
+    insecure:
+      minVersion: "VersionTLS12"
+      sniStrict: false
+
+# Configuration des certificats (si vous utilisez des certificats personnalisés)
+# tls:
+#   certificates:
+#     - certFile: /etc/ssl/certs/your-cert.pem
+#       keyFile: /etc/ssl/private/your-key.pem
+#       stores:
+#         - default
+
+# Stores pour les certificats
+# tls:
+#   stores:
+#     default:
+#       defaultCertificate:
+#         certFile: /etc/ssl/certs/default.pem
+#         keyFile: /etc/ssl/private/default.pem 

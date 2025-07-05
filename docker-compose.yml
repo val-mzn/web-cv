@@ -19,9 +19,14 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.web-cv.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.web-cv.entrypoints=websecure"
+      - "traefik.http.routers.web-cv.tls=true"
       - "traefik.http.routers.web-cv.tls.certresolver=letsencrypt"
       - "traefik.http.services.web-cv.loadbalancer.server.port=8080"
       - "traefik.docker.network=web-cv-network"
+      # Redirection HTTP vers HTTPS pour cette application
+      - "traefik.http.routers.web-cv-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.web-cv-http.entrypoints=web"
+      - "traefik.http.routers.web-cv-http.middlewares=redirect-to-https"
     environment:
       - NODE_ENV=production
     security_opt:
@@ -47,32 +52,50 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      # Configuration Let's Encrypt améliorée
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      # Utiliser le serveur de staging pour les tests (commentez pour production)
+      # - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      # Configuration de logging améliorée
       - "--log.level=INFO"
+      - "--log.filePath=/var/log/traefik.log"
       - "--accesslog=true"
+      - "--accesslog.filePath=/var/log/access.log"
+      # Métriques et monitoring
+      - "--metrics.prometheus=true"
+      # Configuration SSL/TLS
+      - "--entrypoints.websecure.http.tls.options=default"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"  # Dashboard Traefik
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
+      - "./traefik/logs:/var/log"
+      - "./traefik/dynamic:/etc/traefik/dynamic:ro"
     networks:
       - web-cv-network
     labels:
       - "traefik.enable=true"
+      # Dashboard Traefik
       - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
       - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.middlewares=traefik-auth"
       - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_AUTH}"
-      # Redirect HTTP to HTTPS
+      # Middleware de redirection HTTPS global
       - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
       - "traefik.http.routers.http-catchall.entrypoints=web"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
     security_opt:
       - no-new-privileges:true
     logging:
@@ -80,6 +103,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    depends_on:
+      - web-cv
 
 networks:
   web-cv-network:
