@@ -93,6 +93,7 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
             
             # Déploiement
+            export $(cat .env | xargs)
             docker-compose pull
             docker-compose down
             docker-compose up -d
