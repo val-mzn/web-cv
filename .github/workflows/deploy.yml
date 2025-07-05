@@ -67,6 +67,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
+      - name: Verify image push
+        run: |
+          echo "Vérification de l'image pushée..."
+          docker pull ghcr.io/${{ github.repository_owner }}/web-cv:latest
+          docker images | grep ghcr.io/${{ github.repository_owner }}/web-cv
+          echo "Image vérifiée avec succès"
+      
       - name: Deploy to OVH Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -98,10 +105,9 @@ jobs:
             docker context use default
             
             # Authentification Docker avec GitHub Container Registry
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
-            
-            # Vérifier l'authentification
-            if ! docker info | grep -q "Username:"; then
+            if echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin; then
+                echo "Authentification Docker réussie"
+            else
                 echo "Erreur: L'authentification Docker a échoué"
                 exit 1
             fi
@@ -114,11 +120,17 @@ jobs:
             
             # Tester l'image manuellement avec retry
             for i in {1..3}; do
+                echo "Tentative $i de pull de l'image..."
                 if docker pull ghcr.io/${{ github.repository_owner }}/web-cv:latest; then
                     echo "Pull réussi à la tentative $i"
                     break
                 elif [ $i -eq 3 ]; then
                     echo "Échec du pull après 3 tentatives"
+                    echo "Diagnostic des problèmes potentiels:"
+                    echo "- Vérification des images disponibles:"
+                    docker images | grep ghcr.io/${{ github.repository_owner }}/web-cv || echo "Aucune image trouvée"
+                    echo "- Statut de l'authentification:"
+                    docker system info | grep -E "(Registry|Username)" || echo "Pas d'info d'authentification"
                     exit 1
                 else
                     echo "Tentative $i échouée, retry dans 10 secondes..."
