@@ -91,7 +91,7 @@ jobs:
             cat > .env << EOF
             GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
             GITHUB_USERNAME=${{ github.repository_owner }}
-            DOCKER_USERNAME=${{ github.repository_owner }}
+            DOCKER_USERNAME="ghcr.io/val-mzn"
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             DOMAIN=${{ secrets.DOMAIN }}
             ACME_EMAIL=${{ secrets.ACME_EMAIL }}
@@ -107,7 +107,7 @@ jobs:
             # Exporter explicitement les variables critiques
             export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
             export GITHUB_USERNAME="${{ github.repository_owner }}"
-            export DOCKER_USERNAME="${{ github.repository_owner }}"
+            export DOCKER_USERNAME="ghcr.io/val-mzn"
             export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
             export DOMAIN="${{ secrets.DOMAIN }}"
             export ACME_EMAIL="${{ secrets.ACME_EMAIL }}"
