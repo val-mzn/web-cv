@@ -94,14 +94,37 @@ jobs:
             source .env
             set +a
             
+            # Configurer le contexte Docker par défaut
+            docker context use default
+            
             # Authentification Docker avec GitHub Container Registry
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+            
+            # Vérifier l'authentification
+            if ! docker info | grep -q "Username:"; then
+                echo "Erreur: L'authentification Docker a échoué"
+                exit 1
+            fi
             
             # Vérifier l'image avant le pull
             echo "Tentative de pull de l'image: ghcr.io/${{ github.repository_owner }}/web-cv:latest"
             
-            # Tester l'image manuellement
-            docker pull ghcr.io/${{ github.repository_owner }}/web-cv:latest
+            # Attendre un moment pour la synchronisation
+            sleep 5
+            
+            # Tester l'image manuellement avec retry
+            for i in {1..3}; do
+                if docker pull ghcr.io/${{ github.repository_owner }}/web-cv:latest; then
+                    echo "Pull réussi à la tentative $i"
+                    break
+                elif [ $i -eq 3 ]; then
+                    echo "Échec du pull après 3 tentatives"
+                    exit 1
+                else
+                    echo "Tentative $i échouée, retry dans 10 secondes..."
+                    sleep 10
+                fi
+            done
             
             # Vérifier la configuration docker-compose
             echo "Configuration docker-compose:"
