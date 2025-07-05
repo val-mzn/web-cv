@@ -36,23 +36,53 @@ LABEL maintainer="your-email@example.com"
 LABEL version="1.0"
 LABEL description="Web CV application with nginx"
 
-# Use existing nginx user and set proper permissions
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
+# Create script to initialize permissions
+RUN cat > /docker-entrypoint.sh << 'EOF'
+#!/bin/sh
+set -e
 
-# Switch to non-root user
-USER nginx
+# Create nginx directories with proper permissions
+mkdir -p /var/cache/nginx/client_temp \
+         /var/cache/nginx/proxy_temp \
+         /var/cache/nginx/fastcgi_temp \
+         /var/cache/nginx/uwsgi_temp \
+         /var/cache/nginx/scgi_temp \
+         /var/run \
+         /var/log/nginx
+
+# Set proper ownership
+chown -R nginx:nginx /var/cache/nginx \
+                     /var/run \
+                     /var/log/nginx \
+                     /usr/share/nginx/html
+
+# Create nginx.pid file
+touch /var/run/nginx.pid
+chown nginx:nginx /var/run/nginx.pid
+
+# If running as root, exec as nginx user
+if [ "$(id -u)" = "0" ]; then
+    exec su-exec nginx "$@"
+else
+    exec "$@"
+fi
+EOF
+
+# Make the script executable
+RUN chmod +x /docker-entrypoint.sh
+
+# Install su-exec for user switching
+RUN apk add --no-cache su-exec
 
 # Expose port
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/ || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Use the entrypoint script
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"] 
